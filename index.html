@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CryptoScope: Financial Destiny</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-black via-purple-900 to-indigo-900 text-white min-h-screen flex flex-col items-center justify-center p-6">
+
+  <div class="text-center">
+    <h1 class="text-4xl font-bold mb-2">🔮 CryptoScope 🔮</h1>
+    <p class="text-lg mb-6 italic">Your daily dose of crypto-financial destiny</p>
+  </div>
+
+  <div class="w-full max-w-sm bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-2xl">
+    <label for="sign" class="block text-sm mb-2">Choose your sign</label>
+    <select id="sign" class="w-full p-2 rounded bg-black text-white border border-purple-500">
+      <option>Aquarius</option>
+      <option>Pisces</option>
+      <option>Aries</option>
+      <option>Taurus</option>
+      <option>Gemini</option>
+      <option>Cancer</option>
+      <option>Leo</option>
+      <option>Virgo</option>
+      <option>Libra</option>
+      <option>Scorpio</option>
+      <option>Sagittarius</option>
+      <option>Capricorn</option>
+    </select>
+
+    <button onclick="getFortune()" class="mt-4 w-full bg-purple-600 hover:bg-purple-800 p-2 rounded-xl font-bold">Reveal My Financial Destiny 💸</button>
+
+    <div id="output" class="mt-6 text-sm"></div>
+  </div>
+
+  <script>
+    const cryptoPhrases = [
+      "It's time to stake your soul to the blockchain.",
+      "WAGMI... or are we?", 
+      "Your wallet cries in ERC-20 fees.",
+      "The stars suggest a rug pull... stay cautious.",
+      "Mercury retrograde signals a bullish trap."
+    ];
+
+    const tokens = ["$DOGE", "$SHIB", "$SOL", "$ETH", "$APE", "$RUG"];
+    const advice = [
+      "Convert everything to stablecoins and meditate.",
+      "Invest in JPEGs, the rarer the better.",
+      "YOLO into that microcap gem.",
+      "HODL till the next halving.",
+      "Sacrifice some $ETH to appease the DeFi gods."
+    ];
+
+    async function getFortune() {
+      const sign = document.getElementById('sign').value.toLowerCase();
+      try {
+        const res = await fetch(`/.netlify/functions/horoscope?sign=${sign}`);
+        const data = await res.json();
+
+        const randomPhrase = cryptoPhrases[Math.floor(Math.random() * cryptoPhrases.length)];
+        const randomToken = tokens[Math.floor(Math.random() * tokens.length)];
+        const randomAdvice = advice[Math.floor(Math.random() * advice.length)];
+
+        document.getElementById('output').innerHTML = `
+          <p class="mb-2"><strong>${sign.charAt(0).toUpperCase() + sign.slice(1)}</strong></p>
+          <p class="mb-2">${data.description}</p>
+          <p class="mb-2 italic">${randomPhrase}</p>
+          <p class="mb-2">Your lucky token: <span class="text-yellow-300">${randomToken}</span></p>
+          <p class="mb-2">Financial outlook: <span class="text-red-400">${data.mood}</span></p>
+          <p class="mb-2">Advice: ${randomAdvice}</p>
+        `;
+      } catch (err) {
+        document.getElementById('output').innerHTML = '<p class="text-red-400">Failed to fetch destiny. Try again later.</p>';
+      }
+    }
+  </script>
+
+</body>
+</html>
