@@ -3,28 +3,35 @@
   const HERO = FIELD?.closest(".hero");
   if (!FIELD || !HERO) return;
 
-  const SPRITES = {
-    right: [
-      "                 __",
-      "              __/ o\\",
-      "   __________/   __/",
-      "  \\_\\___________/",
-      "       /|   |\\",
-    ],
-    left: [
-      "  __",
-      " /o \\__",
-      " \\__   \\__________",
-      "   \\___________/_/",
-      "        /|   |\\",
-    ],
-  };
+  // Classic fish-shell ASCII (ridiculous_fish) — faces left
+  const FISH_LEFT = [
+    "                  ___",
+    "   ___======____=---=)",
+    " /T            \\_--===)",
+    " L \\ (@)   \\~    \\_-==)",
+    "  \\      / )J~~    \\-=)",
+    "   \\\\___/  )JJ~~    \\)",
+    "    \\_____/JJJ~~      \\",
+    "    / \\  , \\J~~~~      \\",
+    "   (-\\)\\=|  \\~~~        L__",
+    "   (\\\\)  ( -\\)_            ==__",
+    "    \\V    \\-\\) ===_____  J\\   \\\\",
+    "           \\V)     \\_) \\   JJ J\\)",
+    "                       /J JT\\JJJJ)",
+    "                       (JJJ| \\UUU)",
+    "                        (UU)",
+  ];
 
-  const FLEE_RADIUS = 150;
+  // Keep the authentic left-facing art only — letter glyphs don't mirror cleanly.
+  const SPRITE = FISH_LEFT;
+  const SPRITE_W = Math.max(...FISH_LEFT.map((l) => l.length));
+  const SPRITE_H = FISH_LEFT.length;
+
+  const FLEE_RADIUS = 180;
   const MAX_SPEED = 4.6;
-  const CRUISE = 0.55;
+  const CRUISE = 0.5;
 
-  const sharks = [];
+  const fish = [];
   let mouse = { x: -9999, y: -9999, active: false };
   let width = 0;
   let height = 0;
@@ -37,30 +44,29 @@
     height = rect.height;
   }
 
-  function makeShark() {
+  function makeFish() {
     const el = document.createElement("pre");
     el.className = "shark";
     el.setAttribute("aria-hidden", "true");
     FIELD.appendChild(el);
 
-    const facing = Math.random() > 0.5 ? "right" : "left";
+    const scale = 0.62 + Math.random() * 0.22;
     return {
       el,
-      x: width * 0.35 + Math.random() * Math.max(width * 0.55, 40),
-      y: 48 + Math.random() * Math.max(height - 140, 40),
-      vx: facing === "right" ? CRUISE : -CRUISE,
-      vy: (Math.random() - 0.5) * 0.3,
-      facing,
+      x: width * 0.32 + Math.random() * Math.max(width * 0.5, 40),
+      y: 24 + Math.random() * Math.max(height - SPRITE_H * 10 * scale - 40, 40),
+      vx: Math.random() > 0.5 ? CRUISE : -CRUISE,
+      vy: (Math.random() - 0.5) * 0.25,
       phase: Math.random() * Math.PI * 2,
-      scale: 0.85 + Math.random() * 0.4,
-      opacity: 0.48 + Math.random() * 0.28,
+      scale,
+      opacity: 0.55 + Math.random() * 0.25,
     };
   }
 
-  function paint(shark) {
-    shark.el.textContent = SPRITES[shark.facing].join("\n");
-    shark.el.style.transform = `translate(${shark.x}px, ${shark.y}px) scale(${shark.scale})`;
-    shark.el.style.opacity = String(shark.opacity);
+  function paint(f) {
+    f.el.textContent = SPRITE.join("\n");
+    f.el.style.transform = `translate(${f.x}px, ${f.y}px) scale(${f.scale})`;
+    f.el.style.opacity = String(f.opacity);
   }
 
   function toFieldCoords(clientX, clientY) {
@@ -68,7 +74,14 @@
     return { x: clientX - rect.left, y: clientY - rect.top };
   }
 
-  function fleeVector(shark, now) {
+  function center(f) {
+    return {
+      x: f.x + (SPRITE_W * 7.2 * f.scale) / 2,
+      y: f.y + (SPRITE_H * 8.5 * f.scale) / 2,
+    };
+  }
+
+  function fleeVector(f, now) {
     let tx = mouse.x;
     let ty = mouse.y;
     let radius = FLEE_RADIUS;
@@ -81,10 +94,9 @@
       return null;
     }
 
-    const cx = shark.x + 70 * shark.scale;
-    const cy = shark.y + 28 * shark.scale;
-    const dx = cx - tx;
-    const dy = cy - ty;
+    const c = center(f);
+    const dx = c.x - tx;
+    const dy = c.y - ty;
     const dist = Math.hypot(dx, dy);
     if (dist > radius || dist === 0) return null;
     const force = (1 - dist / radius) * (now < spookUntil ? 3.4 : 2.8);
@@ -93,54 +105,51 @@
 
   function tick(now) {
     const t = now * 0.001;
-    for (const shark of sharks) {
+    for (const f of fish) {
       if (!reducedMotion) {
-        const flee = fleeVector(shark, now);
+        const flee = fleeVector(f, now);
         if (flee) {
-          shark.vx += flee.x;
-          shark.vy += flee.y;
-          shark.opacity = Math.min(0.75, shark.opacity + 0.025);
+          f.vx += flee.x;
+          f.vy += flee.y;
+          f.opacity = Math.min(0.82, f.opacity + 0.025);
         } else {
-          const cruise = shark.facing === "right" ? CRUISE : -CRUISE;
-          shark.vx += (cruise - shark.vx) * 0.02;
-          shark.vy += (Math.sin(t + shark.phase) * 0.35 - shark.vy) * 0.03;
-          shark.opacity += (0.55 - shark.opacity) * 0.02;
+          const cruise = f.vx >= 0 ? CRUISE : -CRUISE;
+          f.vx += (cruise - f.vx) * 0.02;
+          f.vy += (Math.sin(t + f.phase) * 0.3 - f.vy) * 0.03;
+          f.opacity += (0.62 - f.opacity) * 0.02;
         }
 
-        const speed = Math.hypot(shark.vx, shark.vy);
+        const speed = Math.hypot(f.vx, f.vy);
         if (speed > MAX_SPEED) {
-          shark.vx = (shark.vx / speed) * MAX_SPEED;
-          shark.vy = (shark.vy / speed) * MAX_SPEED;
+          f.vx = (f.vx / speed) * MAX_SPEED;
+          f.vy = (f.vy / speed) * MAX_SPEED;
         }
 
-        shark.x += shark.vx;
-        shark.y += shark.vy;
+        f.x += f.vx;
+        f.y += f.vy;
 
-        if (shark.vx > 0.15) shark.facing = "right";
-        else if (shark.vx < -0.15) shark.facing = "left";
+        const bodyW = SPRITE_W * 7.2 * f.scale;
+        const bodyH = SPRITE_H * 8.5 * f.scale;
+        const minX = width * 0.18;
+        const maxX = Math.max(width - bodyW - 10, minX + 20);
+        const maxY = Math.max(height - bodyH - 10, 20);
 
-        const minX = width * 0.2;
-        const maxX = Math.max(width - 170, minX + 20);
-        const maxY = Math.max(height - 90, 20);
-
-        if (shark.x < minX - 60) {
-          shark.x = minX - 60;
-          shark.vx = Math.abs(shark.vx);
-          shark.facing = "right";
-        } else if (shark.x > maxX + 50) {
-          shark.x = maxX + 50;
-          shark.vx = -Math.abs(shark.vx);
-          shark.facing = "left";
+        if (f.x < minX - 40) {
+          f.x = minX - 40;
+          f.vx = Math.abs(f.vx);
+        } else if (f.x > maxX + 40) {
+          f.x = maxX + 40;
+          f.vx = -Math.abs(f.vx);
         }
-        if (shark.y < 12) {
-          shark.y = 12;
-          shark.vy = Math.abs(shark.vy);
-        } else if (shark.y > maxY) {
-          shark.y = maxY;
-          shark.vy = -Math.abs(shark.vy);
+        if (f.y < 8) {
+          f.y = 8;
+          f.vy = Math.abs(f.vy);
+        } else if (f.y > maxY) {
+          f.y = maxY;
+          f.vy = -Math.abs(f.vy);
         }
       }
-      paint(shark);
+      paint(f);
     }
     requestAnimationFrame(tick);
   }
@@ -159,8 +168,8 @@
   }
 
   resize();
-  const count = width < 640 ? 4 : 7;
-  for (let i = 0; i < count; i++) sharks.push(makeShark());
+  const count = width < 640 ? 2 : 3;
+  for (let i = 0; i < count; i++) fish.push(makeFish());
 
   HERO.addEventListener("pointermove", onPointer, { passive: true });
   HERO.addEventListener("pointerleave", onLeave);
@@ -168,10 +177,10 @@
 
   window.spookSharks = () => {
     spookUntil = performance.now() + 1100;
-    for (const shark of sharks) {
+    for (const f of fish) {
       const angle = Math.random() * Math.PI * 2;
-      shark.vx += Math.cos(angle) * 3;
-      shark.vy += Math.sin(angle) * 2.2;
+      f.vx += Math.cos(angle) * 3;
+      f.vy += Math.sin(angle) * 2.2;
     }
   };
 
